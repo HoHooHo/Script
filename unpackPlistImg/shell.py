@@ -64,10 +64,12 @@ def gen_png_from_plist(file_path, output):
                 ( sizelist[1] + height )/2
                 )
         result_image.paste(rect_on_big, result_box, mask=0)
+        
+        outfile = output+'/' + k
 
-        if not os.path.isdir(output):
-            os.makedirs(output)
-        outfile = (output+'/' + k).replace('gift_', '')
+        if not os.path.isdir(os.path.dirname(outfile)):
+            os.makedirs(os.path.dirname(outfile))
+
         print outfile, "generated"
         result_image.save(outfile)
 
