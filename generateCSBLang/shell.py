@@ -25,8 +25,16 @@ PLACE_HOLDER_REG = PLACE_HOLDER_TEXT + PUBLIC_REG
 
 CSBLANG = 'CSBLang.lua'
 
-TIPS = '-- 自动生成文件，请勿手动修改' + ENTER
+TIPS = '-- DO NOT EDIT! GENERATE BY SCRIPT!' + ENTER
 
+
+
+def clearPath(path):
+	if os.path.exists(path):
+		shutil.rmtree(path)
+		print('***  clear ' + path + '  ***')
+		
+		
 def regular( _content ):
 	value_dict = {}
 
@@ -55,7 +63,7 @@ def regular( _content ):
 def generateKeyValue(file_name, key):
 	return 'Lang["' + file_name + "_" + key + '"] = "' + key + '"' + ENTER
 
-def generateLang( _input_file, _output_path ):
+def generateLang( _input_file, _output_path , _tempLang_path):
 	file_name = os.path.splitext(os.path.basename(_input_file))[0]
 	file_name = file_name[0].upper() + file_name[1 : ]
 
@@ -78,11 +86,18 @@ def generateLang( _input_file, _output_path ):
 	lua_file = open(_output_path + '/' + CSBLANG, 'a')
 	lua_file.write(lang_content)
 	lua_file.close()
+	
+	
+		
 
-def generate( _input_path, _output_path ):
+	temp_lua_lang_file = open(_tempLang_path + '/' + file_name + 'Lang.lua', 'w')
+	temp_lua_lang_file.write(lang_content)
+	temp_lua_lang_file.close()
+
+def generate( _input_path, _output_path, _tempLang_path ):
     for root, dirs, files in os.walk(_input_path):
         for fileName in files:
-        	generateLang( root + '/' + fileName, _output_path )
+        	generateLang( root + '/' + fileName, _output_path, _tempLang_path )
 
 def changeEncoding():
 	reload(sys)
@@ -101,14 +116,23 @@ if __name__ == '__main__':
 	for path_key in input_options:
 		input_path = config.get('input', path_key)
 		output_path = config.get('output', path_key)
+		tempLang_path = config.get('tempLang', path_key)
 
+		#clearPath(output_path)
+		clearPath(tempLang_path)
+		
+		
 		if not os.path.exists(output_path):
 			os.makedirs( output_path )
+			
+
+		if not os.path.exists(tempLang_path):
+			os.makedirs( tempLang_path )
 
 		lua_file = open(output_path + '/' + CSBLANG, 'w')
 		lua_file.write(TIPS + ENTER)
 		lua_file.close()
 		
-		generate( input_path, output_path )
+		generate( input_path, output_path, tempLang_path )
 
 	print('==================    end    ====================\n')

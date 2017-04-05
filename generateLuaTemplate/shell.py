@@ -14,10 +14,14 @@ NOTE_TAG = '#'
 LOCAL_TAG ='_l'
 
 TYPE_INT = 'int'
+TYPE_INT64 = 'int64'
 TYPE_FLOAT = 'float'
 TYPE_STR = 'string'
 TYPE_LOCAL_STR = 'LOCALSTRING'
 TYPE_TABLE = 'table'
+
+
+TABLE_TAG = '|'
 
 
 TEMP_KEY_DATA = '_KEY_DATA_'
@@ -42,6 +46,9 @@ QUOT_SIGN = '&quot;'
 
 source_encoding = 'utf8'
 
+TIPS = '-- DO NOT EDIT! GENERATE BY SCRIPT!' + ENTER
+
+
 
 
 def clearPath(path):
@@ -56,28 +63,28 @@ def generateLangKeyValue(lang_file_name, key):
 	if key == SPACE:
 		return lang_file_name + '["' + key + '"] = ""' + ENTER
 
-	return lang_file_name + '["' + key + '"] = "' + key + '"' + ENTER
+	return lang_file_name + '["' + replaceQuot(key).strip() + '"] = "' + key + '"' + ENTER
 
 def getTableValue( _varValue ):
 	if _varValue == None or _varValue == '' :
 		_varValue = ''
-	return '{' + _varValue.strip() + '}'
+	return getIntTableValue( _varValue, True )
 
-def getIntTableValue( _varValue ):
-	isTable = False
+def getIntTableValue( _varValue, isT ):
+	isTable = isT
 
-	if _varValue.find('|') > -1:
+	if _varValue.find(TABLE_TAG) > -1:
 		isTable = True
 
 	_varValue = _varValue.strip()
 
-	if _varValue.startswith('|'):
+	if _varValue.startswith(TABLE_TAG):
 		_varValue = _varValue[1:]
 		
-	if _varValue.endswith('|'):
+	if _varValue.endswith(TABLE_TAG):
 		_varValue = _varValue[:-1]
 
-	_varValue = _varValue.replace('|', ', ')
+	_varValue = _varValue.replace(TABLE_TAG, ', ')
 
 	if isTable:
 		_varValue = '{' + _varValue + '}'
@@ -87,27 +94,27 @@ def getIntTableValue( _varValue ):
 def getIntValue( _varValue ):
 	if _varValue == None or _varValue == '' :
 		_varValue = "0"
-	return getIntTableValue(_varValue)
+	return getIntTableValue(_varValue, False)
 
 
-def getStringTableValue( _varValue ):
+def getStringTableValue( _varValue, replaceStr, leftStr, rightStr ):
 	isTable = False
 
-	if _varValue.find('|') > -1:
+	if _varValue.find(TABLE_TAG) > -1:
 		isTable = True
 
 	tempValue = _varValue.strip()
 	if tempValue!='':
 		_varValue = tempValue
 
-	if _varValue.startswith('|'):
+	if _varValue.startswith(TABLE_TAG):
 		_varValue = _varValue[1:]
 		
-	if _varValue.endswith('|'):
+	if _varValue.endswith(TABLE_TAG):
 		_varValue = _varValue[:-1]
 
-	_varValue = _varValue.replace('|', '", "')
-	_varValue = '"' + _varValue + '"'
+	_varValue = _varValue.replace(TABLE_TAG, replaceStr)
+	_varValue = leftStr + _varValue + rightStr
 
 	if isTable:
 		_varValue = '{' + _varValue + '}'
@@ -117,7 +124,7 @@ def getStringTableValue( _varValue ):
 def getStrValue( _varValue ):
 	if _varValue == None:
 		_varValue = ''
-	return getStringTableValue( _varValue )
+	return getStringTableValue( _varValue, '", "', '"', '"' )
 
 def getLocalStrValue( _varValue ):
 	if _varValue == None or _varValue == '':
@@ -125,13 +132,21 @@ def getLocalStrValue( _varValue ):
 
 	global local_lang_list
 	value = replaceQuot(_varValue).strip()
-	if value not in local_lang_list:
-		local_lang_list.append(value)
+	
+	if _varValue.find(TABLE_TAG) > -1:
+		value_list = value.split(TABLE_TAG)
+		for i in xrange(len(value_list)):
+			if value_list[i] not in local_lang_list:
+				local_lang_list.append(value_list[i])
+	else:
+		if _varValue not in local_lang_list:
+			local_lang_list.append(_varValue)
 
-	return 'LT("' + value + '")'
+	#return 'LT("' + value + '")'
+	return getStringTableValue( value, '"), LT("', 'LT("', '")' )
 
 def getValue( _varType, _varValue ):
-	if _varType.lower() == TYPE_INT.lower() or _varType.lower() == TYPE_FLOAT.lower():
+	if _varType.lower() == TYPE_INT.lower() or  _varType.lower() == TYPE_INT64.lower() or _varType.lower() == TYPE_FLOAT.lower():
 		return getIntValue( _varValue )
 	elif _varType.lower() == TYPE_STR.lower():
 		return getStrValue( _varValue )
@@ -171,6 +186,7 @@ def initType( _line, _badWord ):
 	if _badWord:
 		type_list.append(TYPE_STR)
 		type_list.append(TYPE_INT)
+		type_list.append(TYPE_STR)
 
 
 
@@ -214,6 +230,7 @@ def initKey( _line, _badWord ):
 	if _badWord:
 		key_list.append("Reg")
 		key_list.append("Len")
+		key_list.append("NewStr")
 	print type_list
 	print key_list
 
@@ -247,7 +264,9 @@ def generateItem( _line, _badWord ):
 			reg += i
 
 		value_list.append(reg)
-		value_list.append('%d' %len(word.decode('utf-8')))
+		wordLen = len(word.decode('utf-8'))
+		value_list.append('%d' %wordLen)
+		value_list.append("*"*(wordLen>3 and 3 or wordLen))
 
 	value = TAB + '[' + getValue(type_list[0], value_list[0]) + '] = {'
 	for i in xrange(len(key_list)):
@@ -328,7 +347,7 @@ def generateTemplateLua( _input_file, _output_path, _badWord ):
 	lua_file.write(template_content)
 	lua_file.close()
 
-def generateTemplateLangLua( _input_file, _output_path ):
+def generateTemplateLangLua( _input_file, _output_path, _tempLang_path ):
 	file_name = getFileName(_input_file)
 	file_name = file_name[0].upper() + file_name[1 : ] + "Template"
 	lang_file_name = file_name + 'Lang'
@@ -354,21 +373,28 @@ def generateTemplateLangLua( _input_file, _output_path ):
 		lua_lang_file = open(_output_path + '/TemplateLang.lua', 'a+')
 		lua_lang_file.write(lang_content)
 		lua_lang_file.close()
+		
+		
 
-def generateLua( _input_file, _output_path, _badWord ):
+		temp_lua_lang_file = open(_tempLang_path + '/' + file_name + 'Lang.lua', 'w')
+		temp_lua_lang_file.write(lang_content)
+		temp_lua_lang_file.close()
+
+def generateLua( _input_file, _output_path, _tempLang_path, _badWord ):
 	print ('\n********** ' + _input_file + '     to     ' + _output_path + ' **********\n')
 
 	global local_lang_list
 	local_lang_list = []
 	getFileEncoding( _input_file )
 	generateTemplateLua(_input_file, _output_path, _badWord)
-	generateTemplateLangLua(_input_file, _output_path)
+	generateTemplateLangLua(_input_file, _output_path, _tempLang_path)
 
-def generate( _input_path, _output_path ):
-    for root, dirs, files in os.walk(_input_path):
-        for fileName in files:
-        	if fileName.endswith('txt'):
-        		generateLua( root + '/' + fileName, _output_path, fileName == "CheckNameData.txt" )
+def generate( _input_path, _output_path, _tempLang_path ):
+	global filters
+	for root, dirs, files in os.walk(_input_path):
+		for fileName in files:
+			if fileName.endswith('txt') and not filters.has_key(fileName) :
+				generateLua( root + '/' + fileName, _output_path, _tempLang_path, fileName == bad_word_name )
 
 
 
@@ -383,6 +409,10 @@ if __name__ == '__main__':
 	print('==================    start    ====================\n')
 	
 	global version
+	global bad_word_name
+	global filters
+	filters = {}
+	
 	changeEncoding()
 	
 	parser = OptionParser()
@@ -395,17 +425,36 @@ if __name__ == '__main__':
 	config = ConfigParser.ConfigParser()
 	config.read('config.ini')
 	sections = config.sections()
+	
+	bad_word_name = config.get('badword', 'key')
+	filters_options = config.options('filters')
+	for filter_key in filters_options:
+		filter = config.get('filters', filter_key)
+		filters[filter] = True
+	
 	input_options = config.options('input')
-	output_options = config.options('output')
 
 	for path_key in input_options:
 		input_path = config.get('input', path_key)
 		output_path = config.get('output', path_key)
+		tempLang_path = config.get('tempLang', path_key)
 
 		print 'check the dir: ' + input_path
 
-		clearPath(output_path)
+		clearPath(output_path + '/Template')
+		clearPath(tempLang_path)
 
-		generate( input_path, output_path )
+		if not os.path.exists(output_path):
+			os.makedirs( output_path )
+
+		if not os.path.exists(tempLang_path):
+			os.makedirs( tempLang_path )
+		
+
+		lua_lang_file = open(output_path + '/TemplateLang.lua', 'w')
+		lua_lang_file.write(TIPS + ENTER)
+		lua_lang_file.close()
+
+		generate( input_path, output_path, tempLang_path )
 
 	print('==================    end    ====================\n')

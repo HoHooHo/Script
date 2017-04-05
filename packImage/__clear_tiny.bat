@@ -1,3 +1,3 @@
-python shell.py -c True -t True
+python shell.py -c True -t False
 
 pause
