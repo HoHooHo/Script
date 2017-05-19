@@ -244,7 +244,7 @@ def generateKeys(  ):
 
 	value = ''
 	for i in xrange(len(key_list)):
-		value += key_list[i] + ' = ' + '%d' %(i + 1) + ',' + ENTER + TAB
+		value += key_list[i] + ' = v[' + '%d' %(i + 1) + '],' + ENTER + TAB + TAB
 
 	return value
 
