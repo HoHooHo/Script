@@ -1,0 +1,3 @@
+python scale.py
+
+pause

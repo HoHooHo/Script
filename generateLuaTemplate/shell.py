@@ -5,10 +5,15 @@ import shutil
 import codecs
 import chardet
 import math
+import platform
 
 SIMPLE_KEY = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', ' y', 'z']
 
-ENTER = '\n'
+ENTER = '\r\n'
+
+if platform.system() == "Windows":
+	ENTER = "\n"
+
 TAB = '\t'
 NOTE_TAG = '#'
 LOCAL_TAG ='_l'
@@ -302,6 +307,9 @@ def generateTemplateLua( _input_file, _output_path, _badWord ):
 		line = read_handle.readline()
 		if not line:
 			break
+		
+		line = line.replace(ENTER, '\n')
+		line = line.strip('\n')
 		line_tag += 1
 		if line_tag == 1:
 			initType(line, _badWord)
@@ -311,7 +319,7 @@ def generateTemplateLua( _input_file, _output_path, _badWord ):
 			if line.startswith(NOTE_TAG):
 				note += '--' + line
 			else:
-				data += generateItem(line.strip('\n'), _badWord)
+				data += generateItem(line, _badWord)
 				data_len += 1
 	read_handle.close()
 
