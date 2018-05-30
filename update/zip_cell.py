@@ -20,6 +20,11 @@ VERSION_REG = '#define CPP_VERSION (?P<version>[0-9]+)'
 
 MAC_TEMP = ".DS_Store"
 
+def getDir( filePath ):
+	return os.path.dirname(filePath)
+
+def getFileName( filePath ):
+	return os.path.splitext(os.path.basename(filePath))[0]
 
 def getCppVersion( cpp_version ):
 	read_handle = open(cpp_version, 'r')
@@ -132,6 +137,30 @@ def copyFile(fileName, input, output):
 
 	return des
 	
+	
+def zipAbsolute(input, output, config, res_path):
+	print "##############  zipAbsolute  ################"
+	absolute_options = config.options('absolute')
+	print absolute_options
+	for key in absolute_options:
+		zipFile = config.get('absolute', key)
+		print "##############  zipFile  " + zipFile + "  ################"
+		zipName = replaceSprit( getDir(zipFile) + "_" + getFileName( zipFile ) + ".zip" )
+		zipName = output + zipName.replace("/", "_")
+		
+		fullPath = replaceSprit( input + zipFile )
+		
+		if os.path.exists(fullPath):
+			zf = myZipFile.ZipFile(zipName, 'w')
+			
+			zf.write(fullPath, zipFile, myZipFile.ZIP_DEFLATED)
+			print "ZIP: " + zipFile + " ==>> " + zipName
+			
+			zf.close()
+			os.remove(input + zipFile)
+		else:
+			print "############## " + zipFile + " not exists  ################"
+	
 def zipOptions(input, output, config, res_path):
 	print "##############  zipOptions  ################"
 	zip_options = config.options('zip')
@@ -160,16 +189,18 @@ def autozipDir(dir, input, output, maxSize, res_path):
 	zipName = output + zipName.replace("/", "_")
 	zf = myZipFile.ZipFile(zipName, 'w')
 	
-	for fileName in os.listdir(input + dir):
-		if fileName != MAC_TEMP:
+	filelist = os.listdir(input + dir)
+	filelist.sort()
+	
+	firstLetter = ""
+	
+	for fileName in filelist:
+		if fileName != MAC_TEMP: 
 			fullName = input + dir + "/" + fileName
 			if os.path.isfile(fullName):
-				fullPath = replaceSprit( fullName )
-				zipPath = fullPath[fullPath.find(dir):]
-				zf.write(fullPath, zipPath, myZipFile.ZIP_DEFLATED)
-				print "ZIP: " + fileName + " ==>> " + zipName + " @@ fullPath = " + fullPath + " @@ zipPath = " + zipPath
-				zipSize = zipSize + zf.getinfo(zipPath).compress_size
-				if zipSize >= maxSize:
+				firLet = fileName[:1]
+				
+				if zipSize >= maxSize or (firstLetter != "" and firstLetter != firLet):
 					zf.close()
 					zipCount = zipCount + 1
 					zipSize = 0
@@ -177,6 +208,14 @@ def autozipDir(dir, input, output, maxSize, res_path):
 					zipName = replaceSprit( dir + "_" + str(zipCount) + ".zip" )
 					zipName = output + zipName.replace("/", "_")
 					zf = myZipFile.ZipFile(zipName, 'w')
+					
+				firstLetter = firLet
+				
+				fullPath = replaceSprit( fullName )
+				zipPath = fullPath[fullPath.find(dir):]
+				zf.write(fullPath, zipPath, myZipFile.ZIP_DEFLATED)
+				print "ZIP: " + fileName + " ==>> " + zipName + " @@ fullPath = " + fullPath + " @@ zipPath = " + zipPath
+				zipSize = zipSize + zf.getinfo(zipPath).compress_size
 			else:
 				autozipDir(dir + "/" + fileName, input, output, maxSize, res_path)
 			
@@ -238,7 +277,7 @@ def  build(input_path, output_path, template, cpp_version, svn_version, buile_ti
 		res_path = res_path + '/'
 		
 	
-	
+	zipAbsolute(input_path, zip_temp, config, res_path)
 	zipOptions(input_path, zip_temp, config, res_path)
 	autozipOptions(input_path, zip_temp, config, res_path)
 	zipOther(input_path, zip_temp, res_path)

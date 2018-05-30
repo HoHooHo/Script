@@ -32,6 +32,7 @@ CSBLANG = 'CSBLang.lua'
 TIPS = '-- DO NOT EDIT! GENERATE BY SCRIPT!' + ENTER
 
 
+MAC_TEMP = ".DS_Store"
 
 def clearPath(path):
 	if os.path.exists(path):
@@ -101,11 +102,18 @@ def generateLang( _input_file, _output_path , _tempLang_path):
 	temp_lua_lang_file.close()
 
 def generate( _input_path, _output_path, _tempLang_path ):
-	for root, dirs, files in os.walk(_input_path):
-		for fileName in files:
-			if fileName.endswith('.csd'):
-				generateLang( root + '/' + fileName, _output_path, _tempLang_path )
-
+	filelist = os.listdir(_input_path)
+	filelist.sort()
+	
+	for fileName in filelist:
+		if fileName != MAC_TEMP: 
+			fullName = _input_path + "/" + fileName
+			if os.path.isfile(fullName):
+				if fullName.endswith('.csd'):
+					generateLang( fullName, _output_path, _tempLang_path )
+			else:
+				generate( fullName, _output_path, _tempLang_path )
+				
 def changeEncoding():
 	reload(sys)
 	sys.setdefaultencoding('utf8')

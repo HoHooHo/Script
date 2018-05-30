@@ -1,6 +1,7 @@
 #!python
 import os,sys
 import ConfigParser
+from optparse import OptionParser
 from PIL import Image
 import shutil
 import string
@@ -14,7 +15,11 @@ def scale(src_icon, channel_icon, size, output, name):
 		channel = Image.open(channel_icon)
 		src.paste(channel, (0, 0), channel)
 	
-	icon = src.resize((size, size), Image.ANTIALIAS)
+	if antialias == "true":
+		icon = src.resize((size, size), Image.ANTIALIAS)
+	else:
+		icon = src.resize((size, size))
+		
 	
 	file = output + '/' + name
 	
@@ -28,6 +33,15 @@ def scale(src_icon, channel_icon, size, output, name):
 
 
 if __name__ == '__main__':
+
+	global antialias
+	
+	parser = OptionParser()
+	parser.add_option("-a", "--antialias", dest="antialias", default='true', help='true, false')
+	(opts, args) = parser.parse_args()
+	
+	antialias = opts.antialias
+	
 	config = ConfigParser.ConfigParser()
 	config.read('config.ini')
 	sections = config.sections()

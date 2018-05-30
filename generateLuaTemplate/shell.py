@@ -53,6 +53,7 @@ source_encoding = 'utf8'
 
 TIPS = '-- DO NOT EDIT! GENERATE BY SCRIPT!' + ENTER
 
+MAC_TEMP = ".DS_Store"
 
 
 
@@ -67,8 +68,10 @@ def replaceQuot(str):
 def generateLangKeyValue(lang_file_name, key):
 	if key == SPACE:
 		return lang_file_name + '["' + key + '"] = ""' + ENTER
+	
+	key = replaceQuot(key).strip()
 
-	return lang_file_name + '["' + replaceQuot(key).strip() + '"] = "' + key + '"' + ENTER
+	return lang_file_name + '["' + key + '"] = "' + key + '"' + ENTER
 
 def getTableValue( _varValue ):
 	if _varValue == None or _varValue == '' :
@@ -102,23 +105,24 @@ def getIntValue( _varValue ):
 	return getIntTableValue(_varValue, False)
 
 
-def getStringTableValue( _varValue, replaceStr, leftStr, rightStr ):
+def getStringTableValue( _varValue, replaceStr, leftStr, rightStr, _badWord ):
 	isTable = False
 
-	if _varValue.find(TABLE_TAG) > -1:
+	if not _badWord and _varValue.find(TABLE_TAG) > -1:
 		isTable = True
 
 	tempValue = _varValue.strip()
 	if tempValue!='':
 		_varValue = tempValue
 
-	if _varValue.startswith(TABLE_TAG):
+	if isTable and _varValue.startswith(TABLE_TAG):
 		_varValue = _varValue[1:]
 		
-	if _varValue.endswith(TABLE_TAG):
+	if isTable and _varValue.endswith(TABLE_TAG):
 		_varValue = _varValue[:-1]
-
-	_varValue = _varValue.replace(TABLE_TAG, replaceStr)
+	
+	if isTable:
+		_varValue = _varValue.replace(TABLE_TAG, replaceStr)
 	_varValue = leftStr + _varValue + rightStr
 
 	if isTable:
@@ -126,12 +130,12 @@ def getStringTableValue( _varValue, replaceStr, leftStr, rightStr ):
 
 	return _varValue
 
-def getStrValue( _varValue ):
+def getStrValue( _varValue, _badWord ):
 	if _varValue == None:
 		_varValue = ''
-	return getStringTableValue( _varValue, '", "', '"', '"' )
+	return getStringTableValue( _varValue, '", "', '"', '"', _badWord )
 
-def getLocalStrValue( _varValue ):
+def getLocalStrValue( _varValue, _badWord ):
 	if _varValue == None or _varValue == '':
 		_varValue = SPACE
 
@@ -148,15 +152,15 @@ def getLocalStrValue( _varValue ):
 			local_lang_list.append(_varValue)
 
 	#return 'LT("' + value + '")'
-	return getStringTableValue( value, '"), LT("', 'LT("', '")' )
+	return getStringTableValue( value, '"), LT("', 'LT("', '")', _badWord )
 
-def getValue( _varType, _varValue ):
+def getValue( _varType, _varValue, _badWord ):
 	if _varType.lower() == TYPE_INT.lower() or  _varType.lower() == TYPE_INT64.lower() or _varType.lower() == TYPE_FLOAT.lower():
 		return getIntValue( _varValue )
 	elif _varType.lower() == TYPE_STR.lower():
-		return getStrValue( _varValue )
+		return getStrValue( _varValue, _badWord )
 	elif _varType.lower() == TYPE_LOCAL_STR.lower():
-		return getLocalStrValue( _varValue )
+		return getLocalStrValue( _varValue, _badWord )
 	elif _varType.lower() == TYPE_TABLE.lower():
 		return getTableValue( _varValue )
 	else:
@@ -265,22 +269,27 @@ def generateItem( _line, _badWord ):
 		reg = ""
 		for i in word.decode('utf-8'):
 			if reg != "":
-				reg = reg + ' *'
+				reg += ' *'
 			reg += i
 
+		if word.endswith('\\'):
+			value_list[-1] += '\\'
+			reg += '\\'
+		
+		
 		value_list.append(reg)
 		wordLen = len(word.decode('utf-8'))
 		value_list.append('%d' %wordLen)
 		value_list.append("*"*(wordLen>3 and 3 or wordLen))
 
-	value = TAB + '[' + getValue(type_list[0], value_list[0]) + '] = {'
+	value = TAB + '[' + getValue(type_list[0], value_list[0], _badWord) + '] = {'
 	for i in xrange(len(key_list)):
 		if version == '1':
-			value += key_list[i] + ' = ' + getValue(type_list[i], value_list[i]) + ', '
+			value += key_list[i] + ' = ' + getValue(type_list[i], value_list[i], _badWord) + ', '
 		elif version == '2':
-			value += getValue(type_list[i], value_list[i]) + ', '
+			value += getValue(type_list[i], value_list[i], _badWord) + ', '
 		else:
-			value += '[' + simple_key_list[i] + '] = ' + getValue(type_list[i], value_list[i]) + ', '
+			value += '[' + simple_key_list[i] + '] = ' + getValue(type_list[i], value_list[i], _badWord) + ', '
 	value += '},' + ENTER
 	return value
 
@@ -390,21 +399,29 @@ def generateTemplateLangLua( _input_file, _output_path, _tempLang_path ):
 
 def generateLua( _input_file, _output_path, _tempLang_path, _badWord ):
 	print ('\n********** ' + _input_file + '     to     ' + _output_path + ' **********\n')
-
+	
 	global local_lang_list
 	local_lang_list = []
 	getFileEncoding( _input_file )
 	generateTemplateLua(_input_file, _output_path, _badWord)
 	generateTemplateLangLua(_input_file, _output_path, _tempLang_path)
 
+
 def generate( _input_path, _output_path, _tempLang_path ):
 	global filters
-	for root, dirs, files in os.walk(_input_path):
-		for fileName in files:
-			if fileName.endswith('txt') and not filters.has_key(fileName) :
-				generateLua( root + '/' + fileName, _output_path, _tempLang_path, fileName == bad_word_name )
-
-
+	
+	filelist = os.listdir(_input_path)
+	filelist.sort()
+	
+	for fileName in filelist:
+		if fileName != MAC_TEMP: 
+			fullName = _input_path + "/" + fileName
+			if os.path.isfile(fullName):
+				if fullName.endswith('.txt') and not filters.has_key(fileName) :
+					generateLua( fullName, _output_path, _tempLang_path, fileName == bad_word_name )
+			else:
+				generate( fullName, _output_path, _tempLang_path )
+				
 
 def changeEncoding():
 	reload(sys)
