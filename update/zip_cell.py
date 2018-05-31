@@ -192,6 +192,7 @@ def autozipDir(dir, input, output, maxSize, res_path):
 	filelist = os.listdir(input + dir)
 	filelist.sort()
 	
+	lastFileName = ""
 	firstLetter = ""
 	
 	for fileName in filelist:
@@ -200,7 +201,7 @@ def autozipDir(dir, input, output, maxSize, res_path):
 			if os.path.isfile(fullName):
 				firLet = fileName[:1]
 				
-				if zipSize >= maxSize or (firstLetter != "" and firstLetter != firLet):
+				if lastFileName != getFileName(fileName) and (zipSize >= maxSize or (firstLetter != "" and firstLetter != firLet)):
 					zf.close()
 					zipCount = zipCount + 1
 					zipSize = 0
@@ -210,6 +211,7 @@ def autozipDir(dir, input, output, maxSize, res_path):
 					zf = myZipFile.ZipFile(zipName, 'w')
 					
 				firstLetter = firLet
+				lastFileName = getFileName(fileName)
 				
 				fullPath = replaceSprit( fullName )
 				zipPath = fullPath[fullPath.find(dir):]
