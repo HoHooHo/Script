@@ -5,6 +5,7 @@ import shutil
 import re
 import myZipFile
 import ConfigParser
+import pdb
 
 ENTER = '\n'
 TAB = '\t'
@@ -183,17 +184,14 @@ def zipOptions(input, output, config, res_path):
 		shutil.rmtree(input + zipDir)
 
 def autozipDir(dir, input, output, maxSize, res_path):
-	zipCount = 1
-	zipSize = 0
-	zipName = replaceSprit( dir + "_" + str(zipCount) + ".zip" )
-	zipName = output + zipName.replace("/", "_")
-	zf = myZipFile.ZipFile(zipName, 'w')
-	
 	filelist = os.listdir(input + dir)
 	filelist.sort()
 	
-	lastFileName = ""
-	firstLetter = ""
+	firstLetter = None
+	zipCount = None
+	zipSize = None
+	zipName = None
+	zf = None
 	
 	for fileName in filelist:
 		if fileName != MAC_TEMP: 
@@ -201,17 +199,32 @@ def autozipDir(dir, input, output, maxSize, res_path):
 			if os.path.isfile(fullName):
 				firLet = fileName[:1]
 				
-				if lastFileName != getFileName(fileName) and (zipSize >= maxSize or (firstLetter != "" and firstLetter != firLet)):
-					zf.close()
-					zipCount = zipCount + 1
+				if firstLetter == None:
+					print "*************************"
+					firstLetter = firLet
+					zipCount = 1
 					zipSize = 0
 					
-					zipName = replaceSprit( dir + "_" + str(zipCount) + ".zip" )
+					zipName = replaceSprit( dir + "_" + firstLetter + "_" + str(zipCount) + ".zip" )
+					zipName = output + zipName.replace("/", "_")
+					
+					zf = myZipFile.ZipFile(zipName, 'w')
+				elif zipSize >= maxSize or firstLetter != firLet:
+					zf.close()
+					
+					if firstLetter != firLet:
+						firstLetter = firLet
+						zipCount = 1
+					else:
+						zipCount = zipCount + 1
+					
+					zipSize = 0
+					
+					
+					zipName = replaceSprit( dir + "_" + firstLetter + "_" + str(zipCount) + ".zip" )
 					zipName = output + zipName.replace("/", "_")
 					zf = myZipFile.ZipFile(zipName, 'w')
 					
-				firstLetter = firLet
-				lastFileName = getFileName(fileName)
 				
 				fullPath = replaceSprit( fullName )
 				zipPath = fullPath[fullPath.find(dir):]
@@ -220,8 +233,10 @@ def autozipDir(dir, input, output, maxSize, res_path):
 				zipSize = zipSize + zf.getinfo(zipPath).compress_size
 			else:
 				autozipDir(dir + "/" + fileName, input, output, maxSize, res_path)
-			
-	zf.close()
+	if zf:
+		zf.close()
+		zf = None
+		
 	shutil.rmtree(input + dir)
 	
 	if zipSize == 0:
@@ -299,6 +314,7 @@ def  build(input_path, output_path, template, cpp_version, svn_version, buile_ti
 	output(output_path, data, template, cpp_version, svn_version, buile_time)
 
 
+	
 if __name__ == '__main__':
 	print("==================    start    ====================")
 	
