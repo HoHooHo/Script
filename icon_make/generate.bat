@@ -1,3 +1,3 @@
-python scale.py
+python scale.py -a false
 
 pause

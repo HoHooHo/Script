@@ -1,8 +1,8 @@
 {
-    "appid"            : "",
-    "secret_id"        : "",
-    "secret_key"       : "",
-    "bucket"           : "",
+    "appid"            : "your appid",
+    "secret_id"        : "your secret_id",
+    "secret_key"       : "your secret_key",
+    "bucket"           : "your bucket",
     "timeout"          : "60",
     "thread_num"       : "5",
     "delete_sync"      : "1", 
@@ -11,6 +11,7 @@
     "enable_https"     : "0",
     "region"           : "bj",
 
-    "local_path"       : "",
-    "cos_path"         : "/"
+    "local_path"       : "../../res",
+    "cos_path"         : "/union/releaseb/"
 }
+

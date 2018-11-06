@@ -1,0 +1,1 @@
+{"thread_num": "5", "local_path": "../../res", "region": "bj", "bucket": "your bucket name", "secret_id": "your secret_id", "enable_https": "0", "daemon_interval": "60", "cos_path": "/ios/releasea/", "timeout": "60", "appid": "your appid", "daemon_mode": "0", "secret_key": "your secret_key", "delete_sync": "1"}
