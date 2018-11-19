@@ -192,6 +192,7 @@ def autozipDir(dir, input, output, maxSize, res_path):
 	zipSize = None
 	zipName = None
 	zf = None
+	UpperTag = '_l'
 	
 	for fileName in filelist:
 		if fileName != MAC_TEMP: 
@@ -205,7 +206,11 @@ def autozipDir(dir, input, output, maxSize, res_path):
 					zipCount = 1
 					zipSize = 0
 					
-					zipName = replaceSprit( dir + "_" + firstLetter + "_" + str(zipCount) + ".zip" )
+					if firstLetter == firstLetter.upper():
+						UpperTag = '_U'
+					else:
+						UpperTag = '_l'
+					zipName = replaceSprit( dir + "_" + firstLetter + UpperTag + "_" + str(zipCount) + ".zip" )
 					zipName = output + zipName.replace("/", "_")
 					
 					zf = myZipFile.ZipFile(zipName, 'w')
@@ -221,7 +226,12 @@ def autozipDir(dir, input, output, maxSize, res_path):
 					zipSize = 0
 					
 					
-					zipName = replaceSprit( dir + "_" + firstLetter + "_" + str(zipCount) + ".zip" )
+					
+					if firstLetter == firstLetter.upper():
+						UpperTag = '_U'
+					else:
+						UpperTag = '_l'
+					zipName = replaceSprit( dir + "_" + firstLetter + UpperTag + "_" + str(zipCount) + ".zip" )
 					zipName = output + zipName.replace("/", "_")
 					zf = myZipFile.ZipFile(zipName, 'w')
 					
