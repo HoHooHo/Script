@@ -20,7 +20,7 @@ if __name__ == '__main__':
 	print("==================    start    ====================")
 	file = sys.argv[1]
 	md5 = getMD5(file)
-	print 'md5 = ' + md5
+	print ('md5 = ' + md5)
 
 	out_file = open(md5, 'w')
 	out_file.write(md5)

@@ -139,7 +139,7 @@ def copyFile(fileName, input, output):
 	return des
 	
 	
-def zipAbsolute(input, output, config, res_path):
+def zipAbsolute(input, output, config):
 	print "##############  zipAbsolute  ################"
 	absolute_options = config.options('absolute')
 	print absolute_options
@@ -162,7 +162,7 @@ def zipAbsolute(input, output, config, res_path):
 		else:
 			print "############## " + zipFile + " not exists  ################"
 	
-def zipOptions(input, output, config, res_path):
+def zipOptions(input, output, config):
 	print "##############  zipOptions  ################"
 	zip_options = config.options('zip')
 	for key in zip_options:
@@ -183,7 +183,30 @@ def zipOptions(input, output, config, res_path):
 		zf.close()
 		shutil.rmtree(input + zipDir)
 
-def autozipDir(dir, input, output, maxSize, res_path):
+
+def notSameName( name1, name2, config ):
+	fileName1 = os.path.basename(name1)
+	fileName2 = os.path.basename(name2)
+	
+	for key in config.options('SAME_NAME'):
+		value = config.get('SAME_NAME', key)
+		
+		fileName1 = fileName1.replace(value, '')
+		fileName2 = fileName2.replace(value, '')
+	
+	print '********************'
+	print '*****         name1 = ' + name1
+	print '*****         name2 = ' + name2
+	
+	
+	print '*****         fileName1 = ' + fileName1
+	print '*****         fileName2 = ' + fileName2
+	print '********************'
+	
+	return fileName1 != fileName2
+	
+		
+def autozipDir(dir, input, output, maxSize, config):
 	filelist = os.listdir(input + dir)
 	filelist.sort()
 	
@@ -194,7 +217,12 @@ def autozipDir(dir, input, output, maxSize, res_path):
 	zf = None
 	UpperTag = '_l'
 	
+	index = -2
+	listlen = len(filelist)
+	
 	for fileName in filelist:
+		index += 1
+		
 		if fileName != MAC_TEMP: 
 			fullName = input + dir + "/" + fileName
 			if os.path.isfile(fullName):
@@ -214,7 +242,7 @@ def autozipDir(dir, input, output, maxSize, res_path):
 					zipName = output + zipName.replace("/", "_")
 					
 					zf = myZipFile.ZipFile(zipName, 'w')
-				elif zipSize >= maxSize or firstLetter != firLet:
+				elif ((zipSize >= maxSize and notSameName(fileName, filelist[index], config)) or firstLetter != firLet):
 					zf.close()
 					
 					if firstLetter != firLet:
@@ -242,7 +270,7 @@ def autozipDir(dir, input, output, maxSize, res_path):
 				print "ZIP: " + fileName + " ==>> " + zipName + " @@ fullPath = " + fullPath + " @@ zipPath = " + zipPath
 				zipSize = zipSize + zf.getinfo(zipPath).compress_size
 			else:
-				autozipDir(dir + "/" + fileName, input, output, maxSize, res_path)
+				autozipDir(dir + "/" + fileName, input, output, maxSize, config)
 	if zf:
 		zf.close()
 		zf = None
@@ -252,7 +280,7 @@ def autozipDir(dir, input, output, maxSize, res_path):
 	if zipSize == 0:
 		os.remove(zipName)
 
-def autozipOptions(input, output, config, res_path):
+def autozipOptions(input, output, config):
 	print "##############  autozipOptions  ################"
 	autozip_options = config.options('autozip')
 	
@@ -260,18 +288,18 @@ def autozipOptions(input, output, config, res_path):
 	
 	for key in autozip_options:
 		zipDir = config.get('autozip', key)
-		autozipDir(zipDir, input, output, maxSize, res_path)
+		autozipDir(zipDir, input, output, maxSize, config)
 		
 
-def zipOther(input, output, res_path):
+def zipOther(input, output):
 	print "##############  zipOther  ################"
 	if input.endswith("/"):
 		input = input[:-1]
 		
-	if res_path.endswith("/"):
-		res_path = res_path[:-1]
-		
-	zipName = replaceSprit( res_path + ".zip" )
+	res_root_temp = os.path.basename( input )
+	res_root = res_root_temp.replace( "_temp", "" )
+ 
+	zipName = replaceSprit( res_root + ".zip" )
 	zipName = output + zipName.replace("/", "_")
 	zf = myZipFile.ZipFile(zipName, 'w')
 	
@@ -279,7 +307,9 @@ def zipOther(input, output, res_path):
 		for fileName in files:
 			if fileName != MAC_TEMP:
 				fullPath = replaceSprit( root + "/" + fileName )
-				zipPath = fullPath[fullPath.find("res_temp"):].replace( "res_temp", "" )
+				zipPath = fullPath[fullPath.find(res_root_temp):]
+				zipPath = zipPath[len(res_root_temp):]
+				
 				zf.write(fullPath, zipPath, myZipFile.ZIP_DEFLATED)
 				print "ZIP: " + fileName + " ==>> " + zipName + " @@ fullPath = " + fullPath + " @@ zipPath = " + zipPath
 			
@@ -298,16 +328,12 @@ def  build(input_path, output_path, template, cpp_version, svn_version, buile_ti
 	
 	if not os.path.exists(zip_temp):
 		os.makedirs(zip_temp)
-	
-	res_path = config.get('ZIP_PATH', "key")
-	if not res_path.endswith("/"):
-		res_path = res_path + '/'
 		
 	
-	zipAbsolute(input_path, zip_temp, config, res_path)
-	zipOptions(input_path, zip_temp, config, res_path)
-	autozipOptions(input_path, zip_temp, config, res_path)
-	zipOther(input_path, zip_temp, res_path)
+	zipAbsolute(input_path, zip_temp, config)
+	zipOptions(input_path, zip_temp, config)
+	autozipOptions(input_path, zip_temp, config)
+	zipOther(input_path, zip_temp)
 	
 	
 	for root, dirs, files in os.walk(zip_temp):

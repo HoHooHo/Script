@@ -1,0 +1,2 @@
+python shell.py
+pause

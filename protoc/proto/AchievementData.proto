@@ -1,0 +1,6 @@
+message AchievementData
+{
+	optional int32 groupid = 1;		// 成就group id
+	optional int32 taskid  = 2;		// 成就group所达到的子成就id
+	optional int32 param   = 3;		// 参数
+} 
